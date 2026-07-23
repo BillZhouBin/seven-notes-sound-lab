@@ -6,10 +6,12 @@ const staticFiles = [
   'app.js',
   'manifest.webmanifest',
   'service-worker.js',
+  'CNAME',
   'icons',
 ];
 
-await rm('dist', { recursive: true, force: true });
+await rm('dist/client', { recursive: true, force: true });
+await rm('dist/server', { recursive: true, force: true });
 await mkdir('dist/client', { recursive: true });
 await mkdir('dist/server', { recursive: true });
 
