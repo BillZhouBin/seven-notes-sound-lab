@@ -54,7 +54,7 @@ function ensureAudio() {
   audioStatus.textContent = '声音已就绪';
 }
 
-function scheduleTone(noteIndex, startTime, duration = 0.38, destination = masterGain, context = audioContext) {
+function scheduleBasicTone(noteIndex, startTime, duration, destination, context) {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
   const filter = context.createBiquadFilter();
@@ -77,6 +77,124 @@ function scheduleTone(noteIndex, startTime, duration = 0.38, destination = maste
   oscillator.start(startTime);
   oscillator.stop(startTime + duration + release + 0.03);
   return oscillator;
+}
+
+function schedulePianoTone(noteIndex, startTime, duration, destination, context) {
+  const frequency = noteFrequency(noteIndex);
+  const tail = Math.max(1.25, duration + 0.9);
+  const filter = context.createBiquadFilter();
+  const body = context.createGain();
+  const partials = [
+    { ratio: 1, level: 0.34 },
+    { ratio: 2.003, level: 0.13 },
+    { ratio: 3.01, level: 0.065 },
+    { ratio: 4.04, level: 0.032 },
+    { ratio: 5.08, level: 0.015 },
+  ];
+
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(Math.min(9000, 3600 + frequency * 7), startTime);
+  filter.Q.value = 0.7;
+  body.gain.value = 0.9;
+  filter.connect(body);
+  body.connect(destination);
+
+  partials.forEach(({ ratio, level }, partialIndex) => {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const partialTail = tail / (1 + partialIndex * 0.18);
+
+    oscillator.type = partialIndex === 0 ? 'triangle' : 'sine';
+    oscillator.frequency.setValueAtTime(frequency * ratio, startTime);
+    oscillator.detune.value = partialIndex % 2 === 0 ? -1.5 : 1.5;
+    gain.gain.setValueAtTime(0.0001, startTime);
+    gain.gain.exponentialRampToValueAtTime(level, startTime + 0.004);
+    gain.gain.exponentialRampToValueAtTime(level * 0.38, startTime + 0.11);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startTime + partialTail);
+    oscillator.connect(gain);
+    gain.connect(filter);
+    oscillator.start(startTime);
+    oscillator.stop(startTime + partialTail + 0.04);
+  });
+
+  // A short filtered noise burst supplies the felt-hammer attack.
+  const noiseLength = Math.max(1, Math.floor(context.sampleRate * 0.035));
+  const noiseBuffer = context.createBuffer(1, noiseLength, context.sampleRate);
+  const noiseData = noiseBuffer.getChannelData(0);
+  for (let index = 0; index < noiseLength; index += 1) noiseData[index] = Math.random() * 2 - 1;
+  const hammer = context.createBufferSource();
+  const hammerFilter = context.createBiquadFilter();
+  const hammerGain = context.createGain();
+  hammer.buffer = noiseBuffer;
+  hammerFilter.type = 'bandpass';
+  hammerFilter.frequency.value = Math.min(6200, Math.max(1400, frequency * 9));
+  hammerFilter.Q.value = 0.9;
+  hammerGain.gain.setValueAtTime(0.0001, startTime);
+  hammerGain.gain.exponentialRampToValueAtTime(0.026, startTime + 0.002);
+  hammerGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.035);
+  hammer.connect(hammerFilter);
+  hammerFilter.connect(hammerGain);
+  hammerGain.connect(destination);
+  hammer.start(startTime);
+  hammer.stop(startTime + 0.04);
+}
+
+function scheduleElectricPianoTone(noteIndex, startTime, duration, destination, context) {
+  const frequency = noteFrequency(noteIndex);
+  const tail = Math.max(1.05, duration + 0.7);
+  const carrier = context.createOscillator();
+  const modulator = context.createOscillator();
+  const modulation = context.createGain();
+  const carrierGain = context.createGain();
+  const bell = context.createOscillator();
+  const bellGain = context.createGain();
+  const filter = context.createBiquadFilter();
+
+  carrier.type = 'sine';
+  carrier.frequency.setValueAtTime(frequency, startTime);
+  modulator.type = 'sine';
+  modulator.frequency.setValueAtTime(frequency * 2, startTime);
+  modulation.gain.setValueAtTime(frequency * 2.1, startTime);
+  modulation.gain.exponentialRampToValueAtTime(frequency * 0.12, startTime + 0.28);
+  modulation.gain.exponentialRampToValueAtTime(0.01, startTime + tail);
+  modulator.connect(modulation);
+  modulation.connect(carrier.frequency);
+
+  carrierGain.gain.setValueAtTime(0.0001, startTime);
+  carrierGain.gain.exponentialRampToValueAtTime(0.36, startTime + 0.006);
+  carrierGain.gain.exponentialRampToValueAtTime(0.15, startTime + 0.22);
+  carrierGain.gain.exponentialRampToValueAtTime(0.0001, startTime + tail);
+  carrier.connect(carrierGain);
+  carrierGain.connect(filter);
+
+  bell.type = 'sine';
+  bell.frequency.setValueAtTime(frequency * 4.01, startTime);
+  bellGain.gain.setValueAtTime(0.0001, startTime);
+  bellGain.gain.exponentialRampToValueAtTime(0.055, startTime + 0.003);
+  bellGain.gain.exponentialRampToValueAtTime(0.0001, startTime + 0.38);
+  bell.connect(bellGain);
+  bellGain.connect(filter);
+
+  filter.type = 'lowpass';
+  filter.frequency.value = 5200;
+  filter.Q.value = 0.6;
+  filter.connect(destination);
+  [carrier, modulator, bell].forEach((oscillator) => oscillator.start(startTime));
+  carrier.stop(startTime + tail + 0.04);
+  modulator.stop(startTime + tail + 0.04);
+  bell.stop(startTime + 0.42);
+}
+
+function scheduleTone(noteIndex, startTime, duration = 0.38, destination = masterGain, context = audioContext) {
+  if (waveformSelect.value === 'piano') {
+    schedulePianoTone(noteIndex, startTime, duration, destination, context);
+    return;
+  }
+  if (waveformSelect.value === 'epiano') {
+    scheduleElectricPianoTone(noteIndex, startTime, duration, destination, context);
+    return;
+  }
+  scheduleBasicTone(noteIndex, startTime, duration, destination, context);
 }
 
 function playNote(noteIndex, duration = 0.4) {
@@ -314,7 +432,8 @@ async function exportWav() {
   exportButton.querySelector('span').textContent = '正在生成…';
   try {
     const stepDuration = secondsPerStep();
-    const totalDuration = stepDuration * STEPS + 0.6;
+    const instrumentTail = waveformSelect.value === 'piano' ? 1.6 : waveformSelect.value === 'epiano' ? 1.25 : 0.6;
+    const totalDuration = stepDuration * STEPS + instrumentTail;
     const sampleRate = 44100;
     const offline = new OfflineAudioContext(2, Math.ceil(totalDuration * sampleRate), sampleRate);
     const destination = offline.createGain();
