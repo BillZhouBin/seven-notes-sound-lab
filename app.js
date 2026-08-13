@@ -12,6 +12,102 @@ const STEPS = 16;
 const keyboardMap = { a: 0, s: 1, d: 2, f: 3, g: 4, h: 5, j: 6 };
 const sequence = Array.from({ length: NOTES.length }, () => Array(STEPS).fill(false));
 
+function parseScore(source) {
+  let measure = 0;
+  const events = [];
+  source.trim().split(/\s+/).forEach((token) => {
+    if (token === '|') {
+      measure += 1;
+      return;
+    }
+    const match = token.match(/^([0-7])([+-]?)(?:\/([\d.]+))?$/);
+    if (!match) return;
+    const degree = Number(match[1]);
+    events.push({
+      note: degree === 0 ? null : degree - 1,
+      degree,
+      octave: match[2] === '+' ? 1 : match[2] === '-' ? -1 : 0,
+      beats: Number(match[3] || 1),
+      measure,
+    });
+  });
+  return events.map((event, index) => ({
+    ...event,
+    measureEnd: index === events.length - 1 || events[index + 1].measure !== event.measure,
+  }));
+}
+
+const SONGS = [
+  {
+    id: 'painter',
+    title: '粉刷匠',
+    subtitle: '轻快劳动歌',
+    meter: '2/4',
+    bpm: 118,
+    color: '#ff7548',
+    score: parseScore(`
+      5/.5 3/.5 5/.5 3/.5 | 5/.5 3/.5 1/1 | 2/.5 4/.5 3/.5 2/.5 | 5/2 |
+      5/.5 3/.5 5/.5 3/.5 | 5/.5 3/.5 1/1 | 2/.5 4/.5 3/.5 2/.5 | 1/2 |
+      2/.5 2/.5 4/.5 4/.5 | 3/.5 1/.5 5/1 | 2/.5 4/.5 3/.5 2/.5 | 5/2 |
+      5/.5 3/.5 5/.5 3/.5 | 5/.5 3/.5 1/1 | 2/.5 4/.5 3/.5 2/.5 | 1/2
+    `),
+  },
+  {
+    id: 'twinkle',
+    title: '小星星',
+    subtitle: '经典启蒙旋律',
+    meter: '4/4',
+    bpm: 92,
+    color: '#f6cb57',
+    score: parseScore(`
+      1 1 5 5 | 6 6 5/2 | 4 4 3 3 | 2 2 1/2 |
+      5 5 4 4 | 3 3 2/2 | 5 5 4 4 | 3 3 2/2 |
+      1 1 5 5 | 6 6 5/2 | 4 4 3 3 | 2 2 1/2
+    `),
+  },
+  {
+    id: 'tigers',
+    title: '两只老虎',
+    subtitle: '轮唱练习曲',
+    meter: '4/4',
+    bpm: 112,
+    color: '#78d889',
+    score: parseScore(`
+      1 2 3 1 | 1 2 3 1 | 3 4 5/2 | 3 4 5/2 |
+      5/.5 6/.5 5/.5 4/.5 3 1 | 5/.5 6/.5 5/.5 4/.5 3 1 |
+      1 5- 1/2 | 1 5- 1/2
+    `),
+  },
+  {
+    id: 'mary',
+    title: '玛丽的小羊羔',
+    subtitle: '三音入门曲',
+    meter: '4/4',
+    bpm: 104,
+    color: '#5de0d3',
+    score: parseScore(`
+      3 2 1 2 | 3 3 3/2 | 2 2 2/2 | 3 5 5/2 |
+      3 2 1 2 | 3 3 3 3 | 2 2 3 2 | 1/4 |
+      3 2 1 2 | 3 3 3/2 | 2 2 2/2 | 3 5 5/2 |
+      3 2 1 2 | 3 3 3 3 | 2 2 3 2 | 1/4
+    `),
+  },
+  {
+    id: 'joy',
+    title: '欢乐颂',
+    subtitle: '启蒙名曲主题',
+    meter: '4/4',
+    bpm: 108,
+    color: '#7299f7',
+    score: parseScore(`
+      3 3 4 5 | 5 4 3 2 | 1 1 2 3 | 3/1.5 2/.5 2/2 |
+      3 3 4 5 | 5 4 3 2 | 1 1 2 3 | 2/1.5 1/.5 1/2 |
+      2 2 3 1 | 2 3/.5 4/.5 3 1 | 2 3/.5 4/.5 3 2 | 1 2 5-/2 |
+      3 3 4 5 | 5 4 3 2 | 1 1 2 3 | 2/1.5 1/.5 1/2
+    `),
+  },
+];
+
 let audioContext;
 let masterGain;
 let analyser;
@@ -20,6 +116,16 @@ let currentStep = -1;
 let timerId = null;
 let nextNoteTime = 0;
 let visualizerStarted = false;
+let activeSongIndex = 0;
+let songIsPlaying = false;
+let songTimerId = null;
+let songEndTimerId = null;
+let songNextTime = 0;
+let songScheduleIndex = 0;
+let songVisualIndex = -1;
+let songRunId = 0;
+let practiceMode = false;
+let practiceIndex = 0;
 
 const waveformSelect = document.querySelector('#waveform');
 const octaveSelect = document.querySelector('#octave');
@@ -32,8 +138,23 @@ const status = document.querySelector('.status');
 const audioStatus = document.querySelector('#audioStatus');
 const soundOrb = document.querySelector('#soundOrb');
 const toast = document.querySelector('#toast');
+const songLibrary = document.querySelector('#songLibrary');
+const songNotation = document.querySelector('#songNotation');
+const songTitle = document.querySelector('#songTitle');
+const songMeta = document.querySelector('#songMeta');
+const songProgressText = document.querySelector('#songProgressText');
+const songProgressBar = document.querySelector('#songProgressBar');
+const songModeText = document.querySelector('#songModeText');
+const songPlayButton = document.querySelector('#songPlayButton');
+const songPlayLabel = document.querySelector('#songPlayLabel');
+const practiceButton = document.querySelector('#practiceButton');
+const practiceLabel = document.querySelector('#practiceLabel');
+const practiceHint = document.querySelector('#practiceHint');
+const songTempo = document.querySelector('#songTempo');
+const songTempoValue = document.querySelector('#songTempoValue');
 
-function noteFrequency(noteIndex, octave = Number(octaveSelect.value)) {
+function noteFrequency(noteIndex, octaveOffset = 0, octave = Number(octaveSelect.value)) {
+  octave += octaveOffset;
   const midi = 12 * (octave + 1) + NOTES[noteIndex].semitone;
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
@@ -54,7 +175,7 @@ function ensureAudio() {
   audioStatus.textContent = '声音已就绪';
 }
 
-function scheduleBasicTone(noteIndex, startTime, duration, destination, context) {
+function scheduleBasicTone(noteIndex, startTime, duration, destination, context, octaveOffset) {
   const oscillator = context.createOscillator();
   const gain = context.createGain();
   const filter = context.createBiquadFilter();
@@ -62,7 +183,7 @@ function scheduleBasicTone(noteIndex, startTime, duration, destination, context)
   const release = Math.min(0.22, duration * 0.55);
 
   oscillator.type = waveformSelect.value;
-  oscillator.frequency.setValueAtTime(noteFrequency(noteIndex), startTime);
+  oscillator.frequency.setValueAtTime(noteFrequency(noteIndex, octaveOffset), startTime);
   filter.type = 'lowpass';
   filter.frequency.setValueAtTime(waveformSelect.value === 'sawtooth' ? 2200 : 3200, startTime);
   filter.Q.value = 1.2;
@@ -79,8 +200,8 @@ function scheduleBasicTone(noteIndex, startTime, duration, destination, context)
   return oscillator;
 }
 
-function schedulePianoTone(noteIndex, startTime, duration, destination, context) {
-  const frequency = noteFrequency(noteIndex);
+function schedulePianoTone(noteIndex, startTime, duration, destination, context, octaveOffset) {
+  const frequency = noteFrequency(noteIndex, octaveOffset);
   const tail = Math.max(1.25, duration + 0.9);
   const filter = context.createBiquadFilter();
   const body = context.createGain();
@@ -139,8 +260,8 @@ function schedulePianoTone(noteIndex, startTime, duration, destination, context)
   hammer.stop(startTime + 0.04);
 }
 
-function scheduleElectricPianoTone(noteIndex, startTime, duration, destination, context) {
-  const frequency = noteFrequency(noteIndex);
+function scheduleElectricPianoTone(noteIndex, startTime, duration, destination, context, octaveOffset) {
+  const frequency = noteFrequency(noteIndex, octaveOffset);
   const tail = Math.max(1.05, duration + 0.7);
   const carrier = context.createOscillator();
   const modulator = context.createOscillator();
@@ -185,16 +306,16 @@ function scheduleElectricPianoTone(noteIndex, startTime, duration, destination, 
   bell.stop(startTime + 0.42);
 }
 
-function scheduleTone(noteIndex, startTime, duration = 0.38, destination = masterGain, context = audioContext) {
+function scheduleTone(noteIndex, startTime, duration = 0.38, destination = masterGain, context = audioContext, octaveOffset = 0) {
   if (waveformSelect.value === 'piano') {
-    schedulePianoTone(noteIndex, startTime, duration, destination, context);
+    schedulePianoTone(noteIndex, startTime, duration, destination, context, octaveOffset);
     return;
   }
   if (waveformSelect.value === 'epiano') {
-    scheduleElectricPianoTone(noteIndex, startTime, duration, destination, context);
+    scheduleElectricPianoTone(noteIndex, startTime, duration, destination, context, octaveOffset);
     return;
   }
-  scheduleBasicTone(noteIndex, startTime, duration, destination, context);
+  scheduleBasicTone(noteIndex, startTime, duration, destination, context, octaveOffset);
 }
 
 function playNote(noteIndex, duration = 0.4) {
@@ -215,19 +336,288 @@ function animateKey(noteIndex, delay = 0) {
   }, delay);
 }
 
+function currentSong() {
+  return SONGS[activeSongIndex];
+}
+
+function rhythmName(beats) {
+  if (beats === 0.5) return '八分音符';
+  if (beats === 1) return '四分音符';
+  if (beats === 1.5) return '附点四分音符';
+  if (beats === 2) return '二分音符';
+  if (beats === 4) return '全音符';
+  return `${beats} 拍`;
+}
+
+function noteSpokenName(event) {
+  if (!event || event.note === null) return '休止';
+  const octaveName = event.octave > 0 ? '高音' : event.octave < 0 ? '低音' : '';
+  return `${octaveName}${NOTES[event.note].name}（${event.degree}）`;
+}
+
+function renderSongLibrary() {
+  songLibrary.innerHTML = '';
+  SONGS.forEach((song, index) => {
+    const button = document.createElement('button');
+    button.className = `song-card${index === activeSongIndex ? ' active' : ''}`;
+    button.type = 'button';
+    button.setAttribute('role', 'listitem');
+    button.setAttribute('aria-pressed', String(index === activeSongIndex));
+    button.style.setProperty('--song-color', song.color);
+    button.innerHTML = `
+      <span class="song-card-index">曲目 ${String(index + 1).padStart(2, '0')}</span>
+      <strong>${song.title}</strong>
+      <small>${song.subtitle} · ${song.meter}</small>
+    `;
+    button.addEventListener('click', () => selectSong(index));
+    songLibrary.append(button);
+  });
+  document.querySelector('#songCount').textContent = SONGS.length;
+}
+
+function renderSongNotation() {
+  const song = currentSong();
+  songNotation.innerHTML = '';
+  song.score.forEach((event, index) => {
+    const note = document.createElement('div');
+    note.className = `score-note${event.measureEnd ? ' measure-end' : ''}`;
+    note.dataset.event = index;
+    note.style.setProperty('--note-color', event.note === null ? '#aaa99f' : NOTES[event.note].color);
+    note.setAttribute('aria-label', `${noteSpokenName(event)}，${rhythmName(event.beats)}`);
+    const octaveDots = event.octave === 0 ? '' : '•'.repeat(Math.abs(event.octave));
+    note.innerHTML = `
+      ${octaveDots ? `<span class="octave-mark${event.octave < 0 ? ' low' : ''}">${octaveDots}</span>` : ''}
+      <strong>${event.degree}</strong>
+      <small>${event.beats} 拍</small>
+    `;
+    songNotation.append(note);
+  });
+}
+
+function setSongProgress(index, state = 'ready') {
+  const song = currentSong();
+  const total = song.score.length;
+  const completed = state === 'complete';
+  const count = completed ? total : Math.max(0, Math.min(total, index + 1));
+  songProgressText.textContent = `${count} / ${total}`;
+  songProgressBar.style.width = `${completed ? 100 : total ? (count / total) * 100 : 0}%`;
+  document.querySelectorAll('.score-note').forEach((note, noteIndex) => {
+    note.classList.toggle('passed', completed || (index >= 0 && noteIndex < index));
+    note.classList.toggle('current', !completed && state === 'playing' && noteIndex === index);
+    note.classList.toggle('next', !completed && state === 'practice' && noteIndex === index);
+  });
+  if (index >= 0 && !completed) {
+    const activeNote = document.querySelector(`.score-note[data-event="${index}"]`);
+    activeNote?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+  } else if (index < 0) {
+    document.querySelector('#notationWrap').scrollLeft = 0;
+  }
+}
+
+function selectSong(index) {
+  if (isPlaying) stopPlayback();
+  stopSongPlayback(true);
+  stopPractice(true);
+  activeSongIndex = index;
+  const song = currentSong();
+  songTitle.textContent = song.title;
+  songMeta.textContent = `C 大调 · ${song.meter} · ${song.subtitle}`;
+  songTempo.value = song.bpm;
+  songTempoValue.value = song.bpm;
+  songVisualIndex = -1;
+  songScheduleIndex = 0;
+  renderSongLibrary();
+  renderSongNotation();
+  setSongProgress(-1);
+  songModeText.textContent = '准备就绪';
+  practiceHint.textContent = '选择“整曲播放”自动演奏，或选择“跟弹练习”后按上方彩色琴键。';
+}
+
+function secondsPerSongBeat() {
+  return 60 / Number(songTempo.value);
+}
+
+function updateSongVisual(eventIndex, runId) {
+  if (!songIsPlaying || runId !== songRunId) return;
+  songVisualIndex = eventIndex;
+  const event = currentSong().score[eventIndex];
+  setSongProgress(eventIndex, 'playing');
+  if (event.note !== null) animateKey(event.note);
+  practiceHint.innerHTML = `正在演奏：<strong>${noteSpokenName(event)}</strong> · ${rhythmName(event.beats)}`;
+}
+
+function completeSongPlayback(runId) {
+  if (!songIsPlaying || runId !== songRunId) return;
+  songIsPlaying = false;
+  window.clearInterval(songTimerId);
+  songTimerId = null;
+  songVisualIndex = currentSong().score.length;
+  setSongProgress(songVisualIndex, 'complete');
+  songPlayButton.classList.remove('is-playing');
+  songPlayLabel.textContent = '再听一遍';
+  songModeText.textContent = '整曲完成';
+  audioStatus.textContent = '整曲演奏完成';
+  practiceHint.textContent = `${currentSong().title}演奏完成，可以再听一遍或开启跟弹练习。`;
+}
+
+function songScheduler() {
+  const song = currentSong();
+  const runId = songRunId;
+  while (songScheduleIndex < song.score.length && songNextTime < audioContext.currentTime + 0.1) {
+    const eventIndex = songScheduleIndex;
+    const event = song.score[eventIndex];
+    const duration = event.beats * secondsPerSongBeat();
+    const delay = Math.max(0, songNextTime - audioContext.currentTime);
+    if (event.note !== null) {
+      scheduleTone(event.note, songNextTime, Math.max(0.12, duration * 0.82), masterGain, audioContext, event.octave);
+    }
+    window.setTimeout(() => updateSongVisual(eventIndex, runId), delay * 1000);
+    songNextTime += duration;
+    songScheduleIndex += 1;
+  }
+  if (songScheduleIndex >= song.score.length && !songEndTimerId) {
+    const remaining = Math.max(0, songNextTime - audioContext.currentTime);
+    songEndTimerId = window.setTimeout(() => completeSongPlayback(runId), remaining * 1000);
+  }
+}
+
+function startSongPlayback() {
+  if (isPlaying) stopPlayback();
+  stopPractice(true);
+  ensureAudio();
+  if (songVisualIndex >= currentSong().score.length - 1) {
+    songScheduleIndex = 0;
+    songVisualIndex = -1;
+  } else {
+    songScheduleIndex = Math.max(0, songVisualIndex + 1);
+  }
+  songRunId += 1;
+  songIsPlaying = true;
+  songEndTimerId = null;
+  songNextTime = audioContext.currentTime + 0.06;
+  songScheduler();
+  songTimerId = window.setInterval(songScheduler, 25);
+  songPlayButton.classList.add('is-playing');
+  songPlayLabel.textContent = '暂停';
+  songModeText.textContent = '自动演奏';
+  audioStatus.textContent = `正在演奏《${currentSong().title}》`;
+}
+
+function stopSongPlayback(reset = false) {
+  if (!songIsPlaying && !reset) return;
+  songRunId += 1;
+  songIsPlaying = false;
+  window.clearInterval(songTimerId);
+  window.clearTimeout(songEndTimerId);
+  songTimerId = null;
+  songEndTimerId = null;
+  songPlayButton.classList.remove('is-playing');
+  songPlayLabel.textContent = reset ? '整曲播放' : '继续播放';
+  songModeText.textContent = reset ? '准备就绪' : '已暂停';
+  if (reset) {
+    songVisualIndex = -1;
+    songScheduleIndex = 0;
+    setSongProgress(-1);
+    practiceHint.textContent = '选择“整曲播放”自动演奏，或选择“跟弹练习”后按上方彩色琴键。';
+  }
+  if (audioContext) audioStatus.textContent = '声音已就绪';
+}
+
+function toggleSongPlayback() {
+  if (songIsPlaying) stopSongPlayback(); else startSongPlayback();
+}
+
+function nextPracticeEvent() {
+  const score = currentSong().score;
+  while (practiceIndex < score.length && score[practiceIndex].note === null) practiceIndex += 1;
+  return score[practiceIndex];
+}
+
+function showPracticeTarget() {
+  const target = nextPracticeEvent();
+  if (!target) {
+    practiceMode = false;
+    practiceButton.classList.remove('active');
+    practiceLabel.textContent = '再练一次';
+    songModeText.textContent = '跟弹完成';
+    setSongProgress(currentSong().score.length, 'complete');
+    practiceHint.textContent = `太棒了！你已经完整弹完《${currentSong().title}》。`;
+    return;
+  }
+  setSongProgress(practiceIndex, 'practice');
+  practiceHint.innerHTML = `请按上方琴键：<strong>${noteSpokenName(target)}</strong> · 保持 ${target.beats} 拍`;
+}
+
+function startPractice() {
+  if (isPlaying) stopPlayback();
+  stopSongPlayback(true);
+  practiceMode = true;
+  practiceIndex = 0;
+  practiceButton.classList.add('active');
+  practiceLabel.textContent = '退出跟弹';
+  songModeText.textContent = '等待你弹';
+  showPracticeTarget();
+}
+
+function stopPractice(reset = false) {
+  if (!practiceMode && !reset) return;
+  practiceMode = false;
+  practiceButton.classList.remove('active');
+  practiceLabel.textContent = '跟弹练习';
+  if (!reset) {
+    songModeText.textContent = '准备就绪';
+    setSongProgress(-1);
+    practiceHint.textContent = '跟弹已退出，可以选择整曲播放。';
+  }
+}
+
+function togglePractice() {
+  if (practiceMode) stopPractice(); else startPractice();
+}
+
+function handleManualNote(noteIndex) {
+  if (!practiceMode) {
+    playNote(noteIndex);
+    return;
+  }
+  const target = nextPracticeEvent();
+  if (!target) return;
+  if (target.note !== noteIndex) {
+    playNote(noteIndex, 0.18);
+    practiceHint.innerHTML = `再试一次，下一个是 <strong>${noteSpokenName(target)}</strong>`;
+    return;
+  }
+  ensureAudio();
+  const duration = Math.max(0.18, target.beats * secondsPerSongBeat() * 0.78);
+  scheduleTone(target.note, audioContext.currentTime, duration, masterGain, audioContext, target.octave);
+  animateKey(target.note);
+  practiceIndex += 1;
+  showPracticeTarget();
+}
+
 document.querySelectorAll('.note-key').forEach((key) => {
-  key.addEventListener('pointerdown', () => playNote(Number(key.dataset.index)));
+  key.addEventListener('pointerdown', () => handleManualNote(Number(key.dataset.index)));
 });
 
 window.addEventListener('keydown', (event) => {
   if (event.repeat || event.target.matches('input, select, button')) return;
   const noteIndex = keyboardMap[event.key.toLowerCase()];
-  if (noteIndex !== undefined) playNote(noteIndex);
+  if (noteIndex !== undefined) handleManualNote(noteIndex);
   if (event.code === 'Space') {
     event.preventDefault();
     togglePlayback();
   }
 });
+
+songPlayButton.addEventListener('click', toggleSongPlayback);
+practiceButton.addEventListener('click', togglePractice);
+document.querySelector('#songResetButton').addEventListener('click', () => {
+  stopSongPlayback(true);
+  stopPractice(true);
+  setSongProgress(-1);
+  practiceHint.textContent = '已经回到开头，选择播放或跟弹练习。';
+});
+songTempo.addEventListener('input', () => { songTempoValue.value = songTempo.value; });
 
 function renderSequencer() {
   sequencer.innerHTML = '';
@@ -290,6 +680,8 @@ function highlightStep(stepIndex) {
 }
 
 function startPlayback() {
+  stopSongPlayback(true);
+  stopPractice(true);
   ensureAudio();
   isPlaying = true;
   currentStep = -1;
@@ -474,3 +866,4 @@ function showToast(message) {
 }
 
 renderSequencer();
+selectSong(0);

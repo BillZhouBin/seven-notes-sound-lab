@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#121310" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -12,7 +12,7 @@
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23dfff54'/%3E%3Ctext x='32' y='43' text-anchor='middle' font-size='34'%3E%E2%99%AA%3C/text%3E%3C/svg%3E" />
     <meta
       name="description"
-      content="用 Do Re Mi Fa Sol La Si 七个音符快速创作、试听并导出自己的旋律。"
+      content="用 Do Re Mi Fa Sol La Si 七个音符自由弹奏、完成整首童谣，并创作导出自己的旋律。"
     />
     <title>七音造声所</title>
     <link rel="stylesheet" href="styles.css" />
@@ -29,6 +29,7 @@
           <span class="status-dot"></span>
           <span id="audioStatus">点击音符，唤醒声音</span>
         </div>
+        <a class="song-entry" href="#songbook">弹一整首 <span aria-hidden="true">↓</span></a>
       </header>
 
       <section class="hero" aria-labelledby="hero-title">
@@ -104,10 +105,59 @@
         <p class="keyboard-hint">也可以用键盘 <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> <kbd>F</kbd> <kbd>G</kbd> <kbd>H</kbd> <kbd>J</kbd> 演奏</p>
       </section>
 
+      <section class="songbook" id="songbook" aria-labelledby="songbook-title">
+        <div class="songbook-head">
+          <div>
+            <p class="section-kicker">02 · 弹一整首</p>
+            <h2 id="songbook-title">从第一个音，走到最后一个音</h2>
+            <p class="songbook-intro">选择一首熟悉的旋律，自动听一遍，或开启跟弹练习逐音完成整首曲子。</p>
+          </div>
+          <div class="song-counter"><strong id="songCount">5</strong><span>首儿童旋律</span></div>
+        </div>
+
+        <div class="song-library" id="songLibrary" role="list" aria-label="儿童曲目列表"></div>
+
+        <div class="song-stage">
+          <div class="song-stage-head">
+            <div>
+              <p class="song-meta" id="songMeta">C 大调 · 2/4 · 轻快</p>
+              <h3 id="songTitle">粉刷匠</h3>
+            </div>
+            <div class="song-progress-copy">
+              <span id="songProgressText">0 / 0</span>
+              <span id="songModeText">准备就绪</span>
+            </div>
+          </div>
+
+          <div class="song-progress" aria-hidden="true"><span id="songProgressBar"></span></div>
+          <div class="notation-wrap" id="notationWrap">
+            <div class="notation" id="songNotation" aria-label="当前曲目简谱"></div>
+          </div>
+
+          <div class="song-controls">
+            <button class="icon-button song-play-button" id="songPlayButton" type="button">
+              <span class="play-icon" aria-hidden="true"></span>
+              <span id="songPlayLabel">整曲播放</span>
+            </button>
+            <button class="practice-button" id="practiceButton" type="button">
+              <span aria-hidden="true">◎</span>
+              <span id="practiceLabel">跟弹练习</span>
+            </button>
+            <button class="song-reset-button" id="songResetButton" type="button">从头开始</button>
+            <label class="tempo-control song-tempo" for="songTempo">
+              <span>整曲速度 <output id="songTempoValue">118</output> BPM</span>
+              <input id="songTempo" type="range" min="60" max="160" value="118" />
+            </label>
+          </div>
+
+          <p class="practice-hint" id="practiceHint" aria-live="polite">选择“整曲播放”自动演奏，或选择“跟弹练习”后按上方彩色琴键。</p>
+        </div>
+      </section>
+
       <section class="composer" aria-labelledby="composer-title">
         <div class="composer-head">
           <div>
-            <p class="section-kicker">02 · 拼一段旋律</p>
+            <p class="section-kicker">03 · 拼一段旋律</p>
             <h2 id="composer-title">点亮格子，让它循环</h2>
           </div>
           <div class="transport">

@@ -21,6 +21,8 @@ html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
+  padding-right: env(safe-area-inset-right);
+  padding-left: env(safe-area-inset-left);
   min-width: 320px;
   color: var(--ink);
   background:
@@ -32,6 +34,7 @@ body {
 
 button, select, input { font: inherit; }
 button { color: inherit; }
+a, button, select, input { touch-action: manipulation; }
 
 .grain {
   position: fixed;
@@ -77,6 +80,19 @@ button { color: inherit; }
 .status { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 12px; }
 .status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 0 4px rgba(255,117,72,.12); }
 .status.awake .status-dot { background: var(--acid); box-shadow: 0 0 0 4px rgba(223,255,84,.12); }
+.song-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 13px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  text-decoration: none;
+  font-size: 10px;
+  letter-spacing: .08em;
+  transition: color .15s ease, border-color .15s ease, background .15s ease;
+}
+.song-entry:hover { color: #11120f; border-color: var(--acid); background: var(--acid); }
 
 .hero {
   min-height: 520px;
@@ -85,6 +101,7 @@ button { color: inherit; }
   align-items: center;
   gap: 30px;
   padding: 70px 0 74px;
+  overflow: hidden;
 }
 
 .eyebrow, .section-kicker { color: var(--acid); font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; }
@@ -127,7 +144,7 @@ h1 em { color: var(--acid); font-family: "Kaiti SC", "STKaiti", "KaiTi", cursive
 
 @keyframes orbit { to { transform: rotate(360deg); } }
 
-.studio, .composer { border: 1px solid var(--line); background: rgba(26,27,23,.78); backdrop-filter: blur(18px); }
+.studio, .songbook, .composer { border: 1px solid var(--line); background: rgba(26,27,23,.78); backdrop-filter: blur(18px); }
 .studio { padding: 38px; }
 .panel-top, .composer-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; }
 .section-kicker { margin-bottom: 10px; }
@@ -180,6 +197,98 @@ select {
 .keyboard-hint { margin: 20px 0 0; color: var(--muted); font-size: 10px; text-align: center; }
 kbd { padding: 2px 5px; border: 1px solid var(--line); color: var(--ink); background: #11120f; box-shadow: 0 2px 0 #050505; }
 
+.songbook { margin-top: 18px; padding: 38px; scroll-margin-top: 18px; }
+.songbook-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; }
+.songbook-intro { max-width: 680px; margin: 15px 0 0; color: var(--muted); font-size: 12px; line-height: 1.8; }
+.song-counter { flex: 0 0 auto; min-width: 120px; display: grid; justify-items: end; }
+.song-counter strong { color: var(--acid); font-family: "Songti SC", "STSong", serif; font-size: 42px; line-height: 1; }
+.song-counter span { margin-top: 6px; color: var(--muted); font-size: 9px; letter-spacing: .12em; }
+
+.song-library {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 28px;
+}
+.song-card {
+  --song-color: var(--acid);
+  position: relative;
+  min-height: 114px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 15px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: #12130f;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .15s ease, border-color .15s ease, background .15s ease;
+}
+.song-card::after { content: ""; position: absolute; width: 82px; height: 82px; right: -40px; bottom: -45px; border-radius: 50%; background: var(--song-color); opacity: .16; filter: blur(4px); }
+.song-card:hover { transform: translateY(-3px); border-color: var(--song-color); }
+.song-card.active { border-color: var(--song-color); background: color-mix(in srgb, var(--song-color) 8%, #12130f); }
+.song-card-index { color: var(--song-color); font-size: 9px; letter-spacing: .15em; }
+.song-card strong { position: relative; z-index: 1; font-family: "Songti SC", "STSong", serif; font-size: 18px; }
+.song-card small { position: relative; z-index: 1; color: var(--muted); font-size: 9px; }
+
+.song-stage { margin-top: 8px; padding: 26px; border: 1px solid var(--line); background: rgba(17,18,15,.84); }
+.song-stage-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+.song-meta { margin-bottom: 8px; color: var(--acid); font-size: 9px; letter-spacing: .1em; }
+.song-stage h3 { margin: 0; font-family: "Songti SC", "STSong", serif; font-size: clamp(28px, 4vw, 44px); letter-spacing: -.04em; }
+.song-progress-copy { display: grid; justify-items: end; gap: 6px; color: var(--muted); font-size: 9px; }
+.song-progress-copy span:first-child { color: var(--ink); font-size: 12px; }
+.song-progress { height: 2px; margin-top: 22px; background: var(--line); overflow: hidden; }
+.song-progress span { display: block; width: 0; height: 100%; background: var(--acid); transition: width .18s linear; }
+
+.notation-wrap { margin: 22px -26px 0; padding: 2px 26px 13px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-color: var(--acid) transparent; }
+.notation { min-width: max-content; display: flex; align-items: stretch; gap: 6px; padding: 5px 0; }
+.score-note {
+  --note-color: var(--muted);
+  position: relative;
+  width: 52px;
+  min-height: 82px;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: #151612;
+  scroll-snap-align: center;
+  transition: color .15s ease, border-color .15s ease, background .15s ease, transform .15s ease;
+}
+.score-note.measure-end { margin-right: 14px; }
+.score-note.measure-end::after { content: ""; position: absolute; right: -11px; top: 12px; bottom: 12px; width: 1px; background: rgba(243,240,231,.38); }
+.score-note strong { font-family: "Songti SC", "STSong", serif; font-size: 26px; line-height: 1; }
+.score-note small { color: var(--muted); font-size: 8px; }
+.score-note .octave-mark { position: absolute; top: 9px; color: var(--note-color); font-size: 8px; letter-spacing: 2px; }
+.score-note .octave-mark.low { top: auto; bottom: 8px; }
+.score-note.passed { opacity: .42; }
+.score-note.current { color: #10110e; border-color: var(--note-color); background: var(--note-color); transform: translateY(-4px); box-shadow: 0 8px 28px color-mix(in srgb, var(--note-color) 24%, transparent); }
+.score-note.current small, .score-note.current .octave-mark { color: #10110e; }
+.score-note.next { border-color: var(--note-color); box-shadow: inset 0 0 0 1px var(--note-color); }
+
+.song-controls { display: flex; align-items: center; gap: 10px; margin-top: 19px; }
+.song-play-button { min-width: 146px; }
+.practice-button, .song-reset-button {
+  min-height: 48px;
+  padding: 0 17px;
+  border: 1px solid var(--line);
+  background: transparent;
+  cursor: pointer;
+}
+.practice-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.practice-button.active { color: #11120f; border-color: var(--cyan); background: var(--cyan); }
+.song-reset-button { color: var(--muted); }
+.song-reset-button:hover { color: var(--ink); border-color: var(--ink); }
+.song-tempo { margin-left: auto; }
+.practice-hint { min-height: 20px; margin: 17px 0 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
+.practice-hint strong { color: var(--acid); }
+
 .composer { margin-top: 18px; padding: 38px; }
 .transport { display: flex; align-items: center; gap: 24px; }
 .icon-button, .export-button, .text-button { border: 0; cursor: pointer; }
@@ -227,28 +336,45 @@ footer > p:first-child { margin: 0; font-family: "Kaiti SC", "STKaiti", "KaiTi",
   .shell { width: min(100% - 28px, 680px); }
   .hero { grid-template-columns: 1fr; padding: 55px 0; }
   .orb-stage { display: none; }
-  .panel-top, .composer-head { align-items: flex-start; flex-direction: column; }
+  .panel-top, .songbook-head, .composer-head { align-items: flex-start; flex-direction: column; }
   .control-row { width: 100%; }
   .select-wrap { flex: 1; }
   .keys { grid-template-columns: repeat(7, minmax(72px, 1fr)); overflow-x: auto; padding-bottom: 10px; }
   .note-key { height: 150px; }
   .transport { width: 100%; justify-content: space-between; }
+  .song-counter { display: none; }
+  .song-library { display: flex; overflow-x: auto; margin-left: -38px; margin-right: -38px; padding: 0 38px 12px; scroll-snap-type: x mandatory; }
+  .song-card { width: 162px; min-width: 162px; scroll-snap-align: start; }
+  .song-controls { flex-wrap: wrap; }
+  .song-tempo { width: 100%; margin: 8px 0 0; }
 }
 
 @media (max-width: 560px) {
   .masthead { height: 72px; }
   .status { display: none; }
+  .song-entry { margin-left: auto; min-height: 44px; }
   .hero { min-height: 390px; }
   h1 { font-size: clamp(50px, 15vw, 74px); }
-  .studio, .composer { padding: 24px 18px; margin-left: -7px; margin-right: -7px; }
+  .studio, .songbook, .composer { padding: 24px 18px; margin-left: -7px; margin-right: -7px; }
   .control-row, .transport { align-items: stretch; flex-direction: column; }
   .select-wrap, .select-wrap.compact, .tempo-control { width: 100%; min-width: 0; }
   .icon-button { width: 100%; }
+  .song-library { margin-left: -18px; margin-right: -18px; padding-left: 18px; padding-right: 18px; }
+  .song-stage { margin-left: -7px; margin-right: -7px; padding: 20px 14px; }
+  .song-stage-head { align-items: flex-start; }
+  .song-progress-copy { min-width: 64px; }
+  .notation-wrap { margin-left: -14px; margin-right: -14px; padding-left: 14px; padding-right: 14px; }
+  .score-note { width: 50px; min-height: 78px; }
+  .song-controls { display: grid; grid-template-columns: 1fr 1fr; }
+  .song-play-button, .practice-button { width: 100%; min-width: 0; }
+  .song-reset-button { grid-column: 1 / -1; }
+  .song-tempo { grid-column: 1 / -1; }
   .composer-actions { align-items: stretch; flex-direction: column; }
   .secondary-actions { justify-content: center; }
   .export-button { width: 100%; }
   footer { align-items: flex-start; flex-direction: column; justify-content: center; }
   .footer-mark { text-align: left; }
+  footer { padding-bottom: max(18px, env(safe-area-inset-bottom)); }
 }
 
 @media (prefers-reduced-motion: reduce) {
