@@ -35,6 +35,7 @@ body {
 button, select, input { font: inherit; }
 button { color: inherit; }
 a, button, select, input { touch-action: manipulation; }
+body.practice-open { overflow: hidden; }
 
 .grain {
   position: fixed;
@@ -288,6 +289,93 @@ kbd { padding: 2px 5px; border: 1px solid var(--line); color: var(--ink); backgr
 .song-tempo { margin-left: auto; }
 .practice-hint { min-height: 20px; margin: 17px 0 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
 .practice-hint strong { color: var(--acid); }
+
+.practice-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 50% 31%, color-mix(in srgb, var(--practice-color, var(--acid)) 22%, transparent), transparent 29rem),
+    linear-gradient(160deg, #151711 0%, #0c0d0b 74%);
+}
+.practice-screen[hidden] { display: none; }
+.practice-shell {
+  min-height: 100svh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  overflow: hidden;
+  padding: max(17px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left));
+}
+.practice-topbar { display: grid; grid-template-columns: 92px 1fr 64px; align-items: center; gap: 12px; }
+.practice-exit, .practice-actions button {
+  min-height: 44px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: rgba(243,240,231,.03);
+  cursor: pointer;
+}
+.practice-exit { justify-self: start; padding: 0 12px; font-size: 11px; }
+.practice-song-copy { min-width: 0; text-align: center; }
+.practice-song-copy p { margin: 0 0 4px; color: var(--acid); font-size: 9px; letter-spacing: .12em; }
+.practice-song-copy h2 { overflow: hidden; margin: 0; font-size: clamp(20px, 6vw, 30px); text-overflow: ellipsis; white-space: nowrap; }
+.practice-screen-progress { justify-self: end; margin: 0; color: var(--muted); font-size: 11px; }
+.practice-focus { --practice-color: var(--acid); display: grid; align-content: center; justify-items: center; min-height: 0; padding: 10px 0 22px; text-align: center; }
+.practice-overline { margin: 0 0 11px; color: var(--muted); font-size: 10px; letter-spacing: .2em; }
+.practice-target {
+  --practice-color: var(--acid);
+  position: relative;
+  min-width: min(72vw, 300px);
+  min-height: min(35svh, 230px);
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  padding: 22px 32px;
+  color: #10110e;
+  background: var(--practice-color);
+  border: 1px solid var(--practice-color);
+  box-shadow: 0 0 0 9px color-mix(in srgb, var(--practice-color) 7%, transparent), 0 24px 70px color-mix(in srgb, var(--practice-color) 24%, transparent);
+  transition: transform .16s ease, background .16s ease;
+}
+.practice-target::before { content: ""; position: absolute; inset: 9px; border: 1px solid rgba(16,17,14,.3); pointer-events: none; }
+.practice-target strong { font-family: "Songti SC", "STSong", serif; font-size: clamp(92px, 27vw, 148px); line-height: .82; letter-spacing: -.09em; }
+.practice-target-name { margin-top: 11px; font-family: "Songti SC", "STSong", serif; font-size: clamp(22px, 7vw, 34px); }
+.practice-octave { position: absolute; top: 16px; left: 18px; font-size: 10px; letter-spacing: .12em; }
+.practice-target.is-complete { background: var(--acid); }
+.practice-target.is-complete strong { font-family: inherit; letter-spacing: 0; }
+.practice-rhythm { margin: 24px 0 0; color: var(--ink); font-size: 12px; }
+.practice-screen-hint { min-height: 20px; margin: 9px 0 0; color: var(--muted); font-size: 10px; }
+.practice-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; padding: 0 0 12px; }
+.practice-actions button { font-size: 11px; }
+.practice-actions button:nth-child(2) { color: #11120f; border-color: var(--acid); background: var(--acid); }
+.practice-keys { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; padding: 0 0 max(12px, env(safe-area-inset-bottom)); }
+.practice-key {
+  --note-color: var(--acid);
+  position: relative;
+  min-width: 0;
+  height: clamp(108px, 22svh, 172px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-end;
+  padding: 12px 8px;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  background: #151612;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform .12s ease, background .12s ease, border-color .12s ease;
+}
+.practice-key::before { content: ""; position: absolute; inset: auto -40% -78% -40%; height: 140%; border-radius: 50%; background: var(--note-color); filter: blur(16px); opacity: .14; transition: opacity .15s ease, transform .15s ease; }
+.practice-key strong, .practice-key small { position: relative; z-index: 1; }
+.practice-key strong { font-family: "Songti SC", "STSong", serif; font-size: clamp(17px, 5vw, 26px); }
+.practice-key small { margin-top: 4px; color: var(--note-color); font-size: 8px; }
+.practice-key.is-target { border-color: var(--note-color); box-shadow: inset 0 0 0 1px var(--note-color), 0 0 18px color-mix(in srgb, var(--note-color) 14%, transparent); }
+.practice-key.is-target::before, .practice-key.active::before { opacity: .52; transform: translateY(-15%); }
+.practice-key.active { transform: translateY(3px) scale(.98); border-color: var(--note-color); background: color-mix(in srgb, var(--note-color) 16%, #151612); }
+.practice-screen.is-correct .practice-target { transform: scale(1.035); }
+.practice-screen.is-wrong .practice-target { animation: practice-shake .26s linear; }
+@keyframes practice-shake { 25% { transform: translateX(-8px); } 70% { transform: translateX(8px); } }
 
 .composer { margin-top: 18px; padding: 38px; }
 .transport { display: flex; align-items: center; gap: 24px; }

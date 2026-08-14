@@ -212,6 +212,20 @@ const practiceLabel = document.querySelector('#practiceLabel');
 const practiceHint = document.querySelector('#practiceHint');
 const songTempo = document.querySelector('#songTempo');
 const songTempoValue = document.querySelector('#songTempoValue');
+const practiceScreen = document.querySelector('#practiceScreen');
+const practiceExitButton = document.querySelector('#practiceExitButton');
+const practiceScreenMeta = document.querySelector('#practiceScreenMeta');
+const practiceScreenTitle = document.querySelector('#practiceScreenTitle');
+const practiceScreenProgress = document.querySelector('#practiceScreenProgress');
+const practiceTarget = document.querySelector('#practiceTarget');
+const practiceTargetDegree = document.querySelector('#practiceTargetDegree');
+const practiceTargetName = document.querySelector('#practiceTargetName');
+const practiceTargetOctave = document.querySelector('#practiceTargetOctave');
+const practiceTargetRhythm = document.querySelector('#practiceTargetRhythm');
+const practiceScreenHint = document.querySelector('#practiceScreenHint');
+const practicePreviousButton = document.querySelector('#practicePreviousButton');
+const practiceListenButton = document.querySelector('#practiceListenButton');
+const practiceRestartButton = document.querySelector('#practiceRestartButton');
 
 function noteFrequency(noteIndex, octaveOffset = 0, octave = Number(octaveSelect.value)) {
   octave += octaveOffset;
@@ -386,11 +400,11 @@ function playNote(noteIndex, duration = 0.4) {
 
 function animateKey(noteIndex, delay = 0) {
   window.setTimeout(() => {
-    const key = document.querySelector(`.note-key[data-index="${noteIndex}"]`);
-    key.classList.add('active');
+    const keys = document.querySelectorAll(`.note-key[data-index="${noteIndex}"], .practice-key[data-index="${noteIndex}"]`);
+    keys.forEach((key) => key.classList.add('active'));
     soundOrb.classList.add('playing');
     window.setTimeout(() => {
-      key.classList.remove('active');
+      keys.forEach((key) => key.classList.remove('active'));
       soundOrb.classList.remove('playing');
     }, 180);
   }, delay);
@@ -593,6 +607,54 @@ function nextPracticeEvent() {
   return score[practiceIndex];
 }
 
+function openPracticeScreen() {
+  practiceScreen.hidden = false;
+  document.body.classList.add('practice-open');
+  window.setTimeout(() => practiceExitButton.focus(), 0);
+}
+
+function closePracticeScreen() {
+  practiceScreen.hidden = true;
+  document.body.classList.remove('practice-open');
+}
+
+function updatePracticeScreen(target, complete = false) {
+  const song = currentSong();
+  const total = song.score.length;
+  practiceScreenTitle.textContent = song.title;
+  practiceScreenMeta.textContent = complete ? '整首跟弹完成' : `${song.meter} · ${song.subtitle}`;
+  practiceScreenProgress.textContent = complete ? `${total} / ${total}` : `${Math.min(total, practiceIndex + 1)} / ${total}`;
+  practiceTarget.classList.toggle('is-complete', complete);
+
+  if (complete) {
+    practiceTarget.style.setProperty('--practice-color', 'var(--acid)');
+    practiceTargetDegree.textContent = '✓';
+    practiceTargetName.textContent = '完成';
+    practiceTargetOctave.textContent = '太棒了';
+    practiceTargetRhythm.textContent = `你已弹完《${song.title}》`;
+    practiceScreenHint.textContent = '可以从头再练一次，或退出回到曲目页。';
+    document.querySelectorAll('.practice-key').forEach((key) => key.classList.remove('is-target'));
+    return;
+  }
+
+  const octaveName = target.octave > 0 ? '高音' : target.octave < 0 ? '低音' : '中音';
+  practiceTarget.style.setProperty('--practice-color', NOTES[target.note].color);
+  practiceTargetDegree.textContent = target.degree;
+  practiceTargetName.textContent = NOTES[target.note].name;
+  practiceTargetOctave.textContent = octaveName;
+  practiceTargetRhythm.textContent = `${rhythmName(target.beats)} · 保持 ${target.beats} 拍`;
+  practiceScreenHint.textContent = `请按下方 ${noteSpokenName(target)} 琴键`;
+  document.querySelectorAll('.practice-key').forEach((key) => {
+    key.classList.toggle('is-target', Number(key.dataset.index) === target.note);
+  });
+}
+
+function flashPracticeFeedback(className) {
+  practiceScreen.classList.remove('is-correct', 'is-wrong');
+  practiceScreen.classList.add(className);
+  window.setTimeout(() => practiceScreen.classList.remove(className), 260);
+}
+
 function showPracticeTarget() {
   const target = nextPracticeEvent();
   if (!target) {
@@ -602,10 +664,12 @@ function showPracticeTarget() {
     songModeText.textContent = '跟弹完成';
     setSongProgress(currentSong().score.length, 'complete');
     practiceHint.textContent = `太棒了！你已经完整弹完《${currentSong().title}》。`;
+    updatePracticeScreen(null, true);
     return;
   }
   setSongProgress(practiceIndex, 'practice');
   practiceHint.innerHTML = `请按上方琴键：<strong>${noteSpokenName(target)}</strong> · 保持 ${target.beats} 拍`;
+  updatePracticeScreen(target);
 }
 
 function startPractice() {
@@ -616,12 +680,14 @@ function startPractice() {
   practiceButton.classList.add('active');
   practiceLabel.textContent = '退出跟弹';
   songModeText.textContent = '等待你弹';
+  openPracticeScreen();
   showPracticeTarget();
 }
 
 function stopPractice(reset = false) {
   if (!practiceMode && !reset) return;
   practiceMode = false;
+  closePracticeScreen();
   practiceButton.classList.remove('active');
   practiceLabel.textContent = '跟弹练习';
   if (!reset) {
@@ -635,6 +701,40 @@ function togglePractice() {
   if (practiceMode) stopPractice(); else startPractice();
 }
 
+function restartPractice() {
+  if (isPlaying) stopPlayback();
+  stopSongPlayback(true);
+  practiceMode = true;
+  practiceIndex = 0;
+  practiceButton.classList.add('active');
+  practiceLabel.textContent = '退出跟弹';
+  songModeText.textContent = '等待你弹';
+  showPracticeTarget();
+}
+
+function previousPracticeNote() {
+  if (practiceIndex <= 0) {
+    practiceScreenHint.textContent = '已经是第一个音了。';
+    return;
+  }
+  practiceMode = true;
+  practiceButton.classList.add('active');
+  practiceLabel.textContent = '退出跟弹';
+  practiceIndex -= 1;
+  while (practiceIndex > 0 && currentSong().score[practiceIndex].note === null) practiceIndex -= 1;
+  songModeText.textContent = '等待你弹';
+  showPracticeTarget();
+}
+
+function playPracticeHint() {
+  const target = nextPracticeEvent();
+  if (!target) return;
+  ensureAudio();
+  scheduleTone(target.note, audioContext.currentTime, Math.max(0.22, target.beats * secondsPerSongBeat() * 0.78), masterGain, audioContext, target.octave);
+  animateKey(target.note);
+  practiceScreenHint.textContent = `听一听：${noteSpokenName(target)}`;
+}
+
 function handleManualNote(noteIndex) {
   if (!practiceMode) {
     playNote(noteIndex);
@@ -645,21 +745,29 @@ function handleManualNote(noteIndex) {
   if (target.note !== noteIndex) {
     playNote(noteIndex, 0.18);
     practiceHint.innerHTML = `再试一次，下一个是 <strong>${noteSpokenName(target)}</strong>`;
+    practiceScreenHint.textContent = `再试一次，下一个是 ${noteSpokenName(target)}`;
+    flashPracticeFeedback('is-wrong');
     return;
   }
   ensureAudio();
   const duration = Math.max(0.18, target.beats * secondsPerSongBeat() * 0.78);
   scheduleTone(target.note, audioContext.currentTime, duration, masterGain, audioContext, target.octave);
   animateKey(target.note);
+  if (navigator.vibrate) navigator.vibrate(18);
+  flashPracticeFeedback('is-correct');
   practiceIndex += 1;
   showPracticeTarget();
 }
 
-document.querySelectorAll('.note-key').forEach((key) => {
+document.querySelectorAll('.note-key, .practice-key').forEach((key) => {
   key.addEventListener('pointerdown', () => handleManualNote(Number(key.dataset.index)));
 });
 
 window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && practiceMode) {
+    stopPractice();
+    return;
+  }
   if (event.repeat || event.target.matches('input, select, button')) return;
   const noteIndex = keyboardMap[event.key.toLowerCase()];
   if (noteIndex !== undefined) handleManualNote(noteIndex);
@@ -671,6 +779,10 @@ window.addEventListener('keydown', (event) => {
 
 songPlayButton.addEventListener('click', toggleSongPlayback);
 practiceButton.addEventListener('click', togglePractice);
+practiceExitButton.addEventListener('click', () => stopPractice());
+practicePreviousButton.addEventListener('click', previousPracticeNote);
+practiceListenButton.addEventListener('click', playPracticeHint);
+practiceRestartButton.addEventListener('click', restartPractice);
 document.querySelector('#songResetButton').addEventListener('click', () => {
   stopSongPlayback(true);
   stopPractice(true);

@@ -195,6 +195,46 @@
       </footer>
     </main>
 
+    <section class="practice-screen" id="practiceScreen" role="dialog" aria-modal="true" aria-labelledby="practiceScreenTitle" hidden>
+      <div class="practice-shell">
+        <header class="practice-topbar">
+          <button class="practice-exit" id="practiceExitButton" type="button" aria-label="退出跟弹练习">← <span>退出</span></button>
+          <div class="practice-song-copy">
+            <p id="practiceScreenMeta">跟弹练习</p>
+            <h2 id="practiceScreenTitle">粉刷匠</h2>
+          </div>
+          <p class="practice-screen-progress" id="practiceScreenProgress">1 / 1</p>
+        </header>
+
+        <main class="practice-focus">
+          <p class="practice-overline">现在该按</p>
+          <div class="practice-target" id="practiceTarget" aria-live="polite">
+            <span class="practice-octave" id="practiceTargetOctave">中音</span>
+            <strong id="practiceTargetDegree">1</strong>
+            <span class="practice-target-name" id="practiceTargetName">Do</span>
+          </div>
+          <p class="practice-rhythm" id="practiceTargetRhythm">四分音符 · 保持 1 拍</p>
+          <p class="practice-screen-hint" id="practiceScreenHint">按下发亮的琴键开始。</p>
+        </main>
+
+        <div class="practice-actions" aria-label="练习控制">
+          <button id="practicePreviousButton" type="button">← 上一音</button>
+          <button id="practiceListenButton" type="button">听提示</button>
+          <button id="practiceRestartButton" type="button">↻ 重来</button>
+        </div>
+
+        <div class="practice-keys" role="group" aria-label="跟弹琴键">
+          <button class="practice-key note-do" data-index="0" type="button" aria-label="Do C"><strong>Do</strong><small>1 · C</small></button>
+          <button class="practice-key note-re" data-index="1" type="button" aria-label="Re D"><strong>Re</strong><small>2 · D</small></button>
+          <button class="practice-key note-mi" data-index="2" type="button" aria-label="Mi E"><strong>Mi</strong><small>3 · E</small></button>
+          <button class="practice-key note-fa" data-index="3" type="button" aria-label="Fa F"><strong>Fa</strong><small>4 · F</small></button>
+          <button class="practice-key note-sol" data-index="4" type="button" aria-label="Sol G"><strong>Sol</strong><small>5 · G</small></button>
+          <button class="practice-key note-la" data-index="5" type="button" aria-label="La A"><strong>La</strong><small>6 · A</small></button>
+          <button class="practice-key note-si" data-index="6" type="button" aria-label="Si B"><strong>Si</strong><small>7 · B</small></button>
+        </div>
+      </div>
+    </section>
+
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
     <script>
