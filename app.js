@@ -106,6 +106,66 @@ const SONGS = [
       3 3 4 5 | 5 4 3 2 | 1 1 2 3 | 2/1.5 1/.5 1/2
     `),
   },
+  {
+    id: 'bee',
+    title: '小蜜蜂',
+    subtitle: '三音到五音进阶',
+    meter: '4/4',
+    bpm: 116,
+    color: '#dfff54',
+    score: parseScore(`
+      5 3 3 4 | 2 2 1 2 | 3 4 5 5 | 5/2 0/2 |
+      5 3 3 4 | 2 2 1 3 | 5 5 3 3 | 1/4
+    `),
+  },
+  {
+    id: 'new-year',
+    title: '新年好',
+    subtitle: '节日祝福旋律',
+    meter: '4/4',
+    bpm: 108,
+    color: '#ff7548',
+    score: parseScore(`
+      5 5 5 3 | 5 5 5 3 | 5 3 1 2 | 3/1.5 2/.5 1/2 |
+      4 4 4 2 | 4 4 4 2 | 4 2 1 2 | 5/1.5 4/.5 3/2
+    `),
+  },
+  {
+    id: 'birthday',
+    title: '生日快乐',
+    subtitle: '高音跳跃练习',
+    meter: '3/4',
+    bpm: 94,
+    color: '#ed74a9',
+    score: parseScore(`
+      5/.5 5/.5 6 5 | 1+ 7/2 | 5/.5 5/.5 6 5 | 2+ 1+/2 |
+      5/.5 5/.5 5+ 3+ | 1+ 7 6/2 | 4+/.5 4+/.5 3+ 1+ | 2+ 1+/2
+    `),
+  },
+  {
+    id: 'boat',
+    title: '划小船',
+    subtitle: '连贯节奏练习',
+    meter: '4/4',
+    bpm: 100,
+    color: '#5de0d3',
+    score: parseScore(`
+      1 1 1 2 | 3/2 2 3 | 4 5/4 |
+      5 6 5 4 | 3 1 3 2 | 1/4
+    `),
+  },
+  {
+    id: 'cuckoo',
+    title: '布谷鸟',
+    subtitle: '听辨音高练习',
+    meter: '4/4',
+    bpm: 104,
+    color: '#7299f7',
+    score: parseScore(`
+      5 3 5 3 | 5 3 2/2 | 4 2 4 2 | 4 2 1/2 |
+      5 3 5 3 | 5 3 2/2 | 4 2 4 2 | 1/4
+    `),
+  },
 ];
 
 let audioContext;
