@@ -37,7 +37,62 @@ function parseScore(source) {
   }));
 }
 
-const SONGS = [
+function parseUserScore(source) {
+  const tokens = source.trim().split(/\s+/).filter(Boolean);
+  if (!tokens.length) throw new Error('请至少写一个音符。');
+  let noteCount = 0;
+  tokens.forEach((token) => {
+    if (token === '|') return;
+    const match = token.match(/^([0-7])([+-]?)(?:\/([\d.]+))?$/);
+    if (!match) throw new Error(`“${token}”看不懂，请检查简谱格式。`);
+    const beats = Number(match[3] || 1);
+    if (!Number.isFinite(beats) || beats <= 0 || beats > 8) throw new Error(`“${token}”的拍数需要在 0 到 8 之间。`);
+    noteCount += 1;
+  });
+  if (!noteCount) throw new Error('小节线“|”之间还需要有音符。');
+  if (noteCount > 180) throw new Error('一首曲目最多支持 180 个音符。');
+  return parseScore(source);
+}
+
+const CUSTOM_SONGS_KEY = 'seven-notes-custom-songs-v1';
+const CUSTOM_SONG_COLORS = ['#ff7548', '#f6cb57', '#78d889', '#5de0d3', '#7299f7', '#ed74a9', '#dfff54'];
+
+function loadCustomSongs() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CUSTOM_SONGS_KEY) || '[]');
+    if (!Array.isArray(saved)) return [];
+    return saved.map((song, index) => {
+      if (!song || typeof song.title !== 'string' || typeof song.scoreSource !== 'string') return null;
+      const title = song.title.trim().slice(0, 30);
+      if (!title) return null;
+      return {
+        id: typeof song.id === 'string' ? song.id : `custom-${Date.now()}-${index}`,
+        title,
+        subtitle: '我的原创曲目',
+        meter: ['2/4', '3/4', '4/4'].includes(song.meter) ? song.meter : '4/4',
+        bpm: Math.max(60, Math.min(160, Number(song.bpm) || 100)),
+        color: CUSTOM_SONG_COLORS[index % CUSTOM_SONG_COLORS.length],
+        scoreSource: song.scoreSource.trim(),
+        score: parseUserScore(song.scoreSource),
+        custom: true,
+      };
+    }).filter(Boolean);
+  } catch (error) {
+    console.warn('无法读取已保存的自定义曲目', error);
+    return [];
+  }
+}
+
+function saveCustomSongs() {
+  const customSongs = SONGS.filter((song) => song.custom).map(({ id, title, meter, bpm, scoreSource }) => ({ id, title, meter, bpm, scoreSource }));
+  localStorage.setItem(CUSTOM_SONGS_KEY, JSON.stringify(customSongs));
+}
+
+function escapeHtml(value) {
+  return String(value).replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character]);
+}
+
+const BUILT_IN_SONGS = [
   {
     id: 'painter',
     title: '粉刷匠',
@@ -168,6 +223,8 @@ const SONGS = [
   },
 ];
 
+let SONGS = [...BUILT_IN_SONGS, ...loadCustomSongs()];
+
 let audioContext;
 let masterGain;
 let analyser;
@@ -212,6 +269,16 @@ const practiceLabel = document.querySelector('#practiceLabel');
 const practiceHint = document.querySelector('#practiceHint');
 const songTempo = document.querySelector('#songTempo');
 const songTempoValue = document.querySelector('#songTempoValue');
+const addSongButton = document.querySelector('#addSongButton');
+const deleteSongButton = document.querySelector('#deleteSongButton');
+const songEditor = document.querySelector('#songEditor');
+const songEditorForm = document.querySelector('#songEditorForm');
+const editorTitleInput = document.querySelector('#editorTitle');
+const editorMeterInput = document.querySelector('#editorMeter');
+const editorBpmInput = document.querySelector('#editorBpm');
+const editorScoreInput = document.querySelector('#editorScore');
+const editorError = document.querySelector('#editorError');
+const editorCancelButton = document.querySelector('#editorCancelButton');
 const practiceScreen = document.querySelector('#practiceScreen');
 const practiceExitButton = document.querySelector('#practiceExitButton');
 const practiceScreenMeta = document.querySelector('#practiceScreenMeta');
@@ -440,9 +507,10 @@ function renderSongLibrary() {
     button.style.setProperty('--song-color', song.color);
     button.innerHTML = `
       <span class="song-card-index">曲目 ${String(index + 1).padStart(2, '0')}</span>
-      <strong>${song.title}</strong>
-      <small>${song.subtitle} · ${song.meter}</small>
+      <strong>${escapeHtml(song.title)}</strong>
+      <small>${song.custom ? '我的曲目 · ' : ''}${escapeHtml(song.subtitle)} · ${song.meter}</small>
     `;
+    if (song.custom) button.classList.add('custom');
     button.addEventListener('click', () => selectSong(index));
     songLibrary.append(button);
   });
@@ -498,6 +566,7 @@ function selectSong(index) {
   songMeta.textContent = `C 大调 · ${song.meter} · ${song.subtitle}`;
   songTempo.value = song.bpm;
   songTempoValue.value = song.bpm;
+  deleteSongButton.hidden = !song.custom;
   songVisualIndex = -1;
   songScheduleIndex = 0;
   renderSongLibrary();
@@ -505,6 +574,73 @@ function selectSong(index) {
   setSongProgress(-1);
   songModeText.textContent = '准备就绪';
   practiceHint.textContent = '选择“整曲播放”自动演奏，或选择“跟弹练习”后按上方彩色琴键。';
+}
+
+function openSongEditor() {
+  editorError.textContent = '';
+  songEditor.hidden = false;
+  document.body.classList.add('editor-open');
+  window.setTimeout(() => editorTitleInput.focus(), 0);
+}
+
+function closeSongEditor() {
+  songEditor.hidden = true;
+  document.body.classList.remove('editor-open');
+}
+
+function addCustomSong(event) {
+  event.preventDefault();
+  const title = editorTitleInput.value.trim().slice(0, 30);
+  const meter = editorMeterInput.value;
+  const bpm = Number(editorBpmInput.value);
+  const scoreSource = editorScoreInput.value.trim();
+
+  if (!title) {
+    editorError.textContent = '先给这首曲子起个名字。';
+    editorTitleInput.focus();
+    return;
+  }
+  if (!Number.isFinite(bpm) || bpm < 60 || bpm > 160) {
+    editorError.textContent = '速度请填写 60 到 160 之间的数字。';
+    editorBpmInput.focus();
+    return;
+  }
+
+  try {
+    const score = parseUserScore(scoreSource);
+    const customSong = {
+      id: `custom-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      title,
+      subtitle: '我的原创曲目',
+      meter,
+      bpm,
+      color: CUSTOM_SONG_COLORS[SONGS.filter((song) => song.custom).length % CUSTOM_SONG_COLORS.length],
+      scoreSource,
+      score,
+      custom: true,
+    };
+    SONGS.push(customSong);
+    saveCustomSongs();
+    songEditorForm.reset();
+    editorMeterInput.value = '4/4';
+    editorBpmInput.value = '100';
+    closeSongEditor();
+    selectSong(SONGS.length - 1);
+    showToast(`《${title}》已加入曲目库`);
+  } catch (error) {
+    editorError.textContent = error.message || '这段简谱暂时无法保存。';
+  }
+}
+
+function deleteCurrentCustomSong() {
+  const song = currentSong();
+  if (!song?.custom) return;
+  if (!window.confirm(`删除《${song.title}》？此操作只会删除这台设备上的保存内容。`)) return;
+  const nextIndex = Math.max(0, activeSongIndex - 1);
+  SONGS.splice(activeSongIndex, 1);
+  saveCustomSongs();
+  selectSong(nextIndex);
+  showToast('自定义曲目已删除');
 }
 
 function secondsPerSongBeat() {
@@ -768,6 +904,10 @@ window.addEventListener('keydown', (event) => {
     stopPractice();
     return;
   }
+  if (event.key === 'Escape' && !songEditor.hidden) {
+    closeSongEditor();
+    return;
+  }
   if (event.repeat || event.target.matches('input, select, button')) return;
   const noteIndex = keyboardMap[event.key.toLowerCase()];
   if (noteIndex !== undefined) handleManualNote(noteIndex);
@@ -779,6 +919,10 @@ window.addEventListener('keydown', (event) => {
 
 songPlayButton.addEventListener('click', toggleSongPlayback);
 practiceButton.addEventListener('click', togglePractice);
+addSongButton.addEventListener('click', openSongEditor);
+deleteSongButton.addEventListener('click', deleteCurrentCustomSong);
+songEditorForm.addEventListener('submit', addCustomSong);
+editorCancelButton.addEventListener('click', closeSongEditor);
 practiceExitButton.addEventListener('click', () => stopPractice());
 practicePreviousButton.addEventListener('click', previousPracticeNote);
 practiceListenButton.addEventListener('click', playPracticeHint);

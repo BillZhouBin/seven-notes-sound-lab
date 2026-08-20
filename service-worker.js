@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seven-notes-v8';
+const CACHE_NAME = 'seven-notes-v9';
 const APP_SHELL = [
   './',
   './index.html',

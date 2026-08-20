@@ -112,7 +112,10 @@
             <h2 id="songbook-title">从第一个音，走到最后一个音</h2>
             <p class="songbook-intro">选择一首熟悉的旋律，自动听一遍，或开启跟弹练习逐音完成整首曲子。</p>
           </div>
-          <div class="song-counter"><strong id="songCount">5</strong><span>首儿童旋律</span></div>
+          <div class="songbook-tools">
+            <button class="add-song-button" id="addSongButton" type="button">＋ 自由添加</button>
+            <div class="song-counter"><strong id="songCount">5</strong><span>首旋律</span></div>
+          </div>
         </div>
 
         <div class="song-library" id="songLibrary" role="list" aria-label="儿童曲目列表"></div>
@@ -151,6 +154,7 @@
           </div>
 
           <p class="practice-hint" id="practiceHint" aria-live="polite">选择“整曲播放”自动演奏，或选择“跟弹练习”后按上方彩色琴键。</p>
+          <button class="delete-song-button" id="deleteSongButton" type="button" hidden>删除这首自定义曲目</button>
         </div>
       </section>
 
@@ -233,6 +237,45 @@
           <button class="practice-key note-si" data-index="6" type="button" aria-label="Si B"><strong>Si</strong><small>7 · B</small></button>
         </div>
       </div>
+    </section>
+
+    <section class="song-editor" id="songEditor" role="dialog" aria-modal="true" aria-labelledby="songEditorTitle" hidden>
+      <form class="song-editor-sheet" id="songEditorForm">
+        <div class="song-editor-head">
+          <div>
+            <p>我的曲目</p>
+            <h2 id="songEditorTitle">写进一首新旋律</h2>
+          </div>
+          <button class="editor-close" id="editorCancelButton" type="button" aria-label="取消添加曲目">×</button>
+        </div>
+
+        <label class="editor-field" for="editorTitle">
+          <span>曲名</span>
+          <input id="editorTitle" type="text" maxlength="30" placeholder="例如：我的第一首歌" required />
+        </label>
+        <div class="editor-row">
+          <label class="editor-field" for="editorMeter">
+            <span>拍号</span>
+            <select id="editorMeter"><option>2/4</option><option>3/4</option><option selected>4/4</option></select>
+          </label>
+          <label class="editor-field" for="editorBpm">
+            <span>速度 BPM</span>
+            <input id="editorBpm" type="number" min="60" max="160" value="100" inputmode="numeric" required />
+          </label>
+        </div>
+        <label class="editor-field" for="editorScore">
+          <span>数字简谱</span>
+          <textarea id="editorScore" rows="5" placeholder="1 2 3 1 | 1 2 3 1" spellcheck="false" required></textarea>
+        </label>
+        <div class="score-guide">
+          <strong>写法提示</strong>
+          <p><code>1–7</code> 是 Do–Si，<code>0</code> 是休止，<code>|</code> 分小节。</p>
+          <p><code>1+</code> 高八度，<code>5-</code> 低八度，<code>5/.5</code> 为半拍。</p>
+        </div>
+        <p class="editor-error" id="editorError" role="alert"></p>
+        <button class="editor-save" type="submit">保存到我的曲目</button>
+        <p class="editor-note">曲目只保存在这台设备的浏览器中。</p>
+      </form>
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
