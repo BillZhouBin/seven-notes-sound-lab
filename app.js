@@ -68,12 +68,13 @@ function loadCustomSongs() {
       return {
         id: typeof song.id === 'string' ? song.id : `custom-${Date.now()}-${index}`,
         title,
-        subtitle: '我的原创曲目',
+        subtitle: typeof song.subtitle === 'string' ? song.subtitle.slice(0, 40) : '我的原创曲目',
         meter: ['2/4', '3/4', '4/4'].includes(song.meter) ? song.meter : '4/4',
         bpm: Math.max(60, Math.min(160, Number(song.bpm) || 100)),
         color: CUSTOM_SONG_COLORS[index % CUSTOM_SONG_COLORS.length],
         scoreSource: song.scoreSource.trim(),
         score: parseUserScore(song.scoreSource),
+        libraryId: typeof song.libraryId === 'string' ? song.libraryId : null,
         custom: true,
       };
     }).filter(Boolean);
@@ -84,7 +85,7 @@ function loadCustomSongs() {
 }
 
 function saveCustomSongs() {
-  const customSongs = SONGS.filter((song) => song.custom).map(({ id, title, meter, bpm, scoreSource }) => ({ id, title, meter, bpm, scoreSource }));
+  const customSongs = SONGS.filter((song) => song.custom).map(({ id, title, subtitle, meter, bpm, scoreSource, libraryId }) => ({ id, title, subtitle, meter, bpm, scoreSource, libraryId }));
   localStorage.setItem(CUSTOM_SONGS_KEY, JSON.stringify(customSongs));
 }
 
@@ -223,6 +224,89 @@ const BUILT_IN_SONGS = [
   },
 ];
 
+const PRESET_SONGS = [
+  {
+    id: 'preset-london-bridge', title: '伦敦桥', subtitle: '级进旋律练习', category: '世界旋律', meter: '4/4', bpm: 104, color: '#ff7548',
+    scoreSource: '5 6 5 4 | 3 4 5/2 | 2 3 4/2 | 3 4 5/2 | 5 6 5 4 | 3 4 5/2 | 2 5 3/2 | 1/4',
+  },
+  {
+    id: 'preset-jingle-bells', title: '铃儿响叮当', subtitle: '节日节奏练习', category: '世界旋律', meter: '4/4', bpm: 118, color: '#f6cb57',
+    scoreSource: '3 3 3/2 | 3 3 3/2 | 3 5 1+ 2+ 3/4 | 4 4 4 4 4 3 3 | 3 2 2 3 2/2 5/2',
+  },
+  {
+    id: 'preset-old-macdonald', title: '老麦克唐纳', subtitle: '重复句型练习', category: '世界旋律', meter: '4/4', bpm: 102, color: '#78d889',
+    scoreSource: '1 1 1 5 | 6 6 5/2 | 3 3 2 2 | 1/2 0/2 | 5 1 1 1 | 5 6 6 5/2 | 3 3 2 2 | 1/4',
+  },
+  {
+    id: 'preset-little-red-riding-hood', title: '小红帽', subtitle: '上下行旋律练习', category: '童谣', meter: '4/4', bpm: 106, color: '#5de0d3',
+    scoreSource: '6 5 4 5 | 6 6 5/2 | 6 5 4 5 | 6 6 5/2 | 5 4 3 4 | 5 5 4/2 | 3 2 1 2 | 1/4',
+  },
+  {
+    id: 'preset-oh-susanna', title: '哦，苏珊娜', subtitle: '跳进音程练习', category: '世界旋律', meter: '4/4', bpm: 110, color: '#7299f7',
+    scoreSource: '1 3 5 5 | 6 5 3 1 | 3 5 6 6 | 5/2 3/2 | 1 3 5 5 | 6 5 3 1 | 2 3 2 1 | 1/4',
+  },
+  {
+    id: 'preset-frere-jacques', title: '雅克兄弟', subtitle: '轮唱入门练习', category: '世界旋律', meter: '4/4', bpm: 108, color: '#ed74a9',
+    scoreSource: '1 2 3 1 | 1 2 3 1 | 3 4 5/2 | 3 4 5/2 | 5/.5 6/.5 5/.5 4/.5 3 1 | 5/.5 6/.5 5/.5 4/.5 3 1 | 1 5- 1/2 | 1 5- 1/2',
+  },
+  {
+    id: 'preset-little-donkey', title: '小毛驴', subtitle: '轻快重复句', category: '童谣', meter: '4/4', bpm: 112, color: '#dfff54',
+    scoreSource: '5 5 5 3 | 5 5 5 3 | 5 3 1 2 | 3 2 1/2 | 4 4 4 2 | 4 4 4 2 | 4 2 1 2 | 5 4 3/2',
+  },
+  {
+    id: 'preset-little-rabbit', title: '小白兔', subtitle: '五音入门曲', category: '童谣', meter: '4/4', bpm: 102, color: '#ff7548',
+    scoreSource: '1 3 3 2 | 3 5 5/2 | 5 4 3 2 | 1/2 0/2 | 3 3 4 5 | 5 4 3 2 | 1 2 3 1 | 1/4',
+  },
+  {
+    id: 'preset-friends', title: '找朋友', subtitle: '对称节奏练习', category: '童谣', meter: '4/4', bpm: 108, color: '#f6cb57',
+    scoreSource: '1 2 3 1 | 3 4 5/2 | 5 6 5 4 | 3 2 1/2 | 2 3 4 2 | 3 4 5/2 | 5 4 3 2 | 1/4',
+  },
+  {
+    id: 'preset-clap-hands', title: '小手拍拍', subtitle: '节拍互动练习', category: '童谣', meter: '4/4', bpm: 116, color: '#78d889',
+    scoreSource: '1 1 2 3 | 3 3 2 3 | 4 3 2 1 | 2/2 1/2 | 3 3 4 5 | 5 4 3 2 | 1 2 3 1 | 1/4',
+  },
+  {
+    id: 'preset-pull-radish', title: '拔萝卜', subtitle: '稳拍低音练习', category: '童谣', meter: '2/4', bpm: 104, color: '#5de0d3',
+    scoreSource: '5 5 3 5 | 5 3 1/2 | 2 2 4 4 | 3 2 1/2 | 5 5 3 5 | 5 3 1/2 | 2 4 3 2 | 1/2 0/2',
+  },
+  {
+    id: 'preset-dancing-bear', title: '洋娃娃和小熊跳舞', subtitle: '双音跳跃练习', category: '童谣', meter: '4/4', bpm: 114, color: '#7299f7',
+    scoreSource: '1 3 3 1 | 3 3 1 3 | 5 5 4 3 | 2 3 2 1 | 1 3 3 1 | 3 3 1 3 | 5 4 3 2 | 1/4',
+  },
+  {
+    id: 'preset-good-morning', title: '早安歌', subtitle: '明亮开场练习', category: '童谣', meter: '4/4', bpm: 110, color: '#ed74a9',
+    scoreSource: '1 2 3 1 | 3 4 5/2 | 5 6 5 4 | 3 1 2/2 | 1 2 3 1 | 3 4 5/2 | 5 4 3 2 | 1/4',
+  },
+  {
+    id: 'preset-little-train', title: '小火车', subtitle: '匀速节拍练习', category: '童谣', meter: '4/4', bpm: 120, color: '#dfff54',
+    scoreSource: '1 1 3 3 | 5 5 3/2 | 2 2 4 4 | 3 3 2/2 | 1 3 5 3 | 2 4 3 2 | 1 2 3 1 | 1/4',
+  },
+  {
+    id: 'preset-lullaby', title: '摇篮曲', subtitle: '舒缓长音练习', category: '世界旋律', meter: '3/4', bpm: 78, color: '#ff7548',
+    scoreSource: '3 3 5 3 | 3 3 5 3 | 3 5 1+ 7 | 6 6 5/2 | 2 2 4 2 | 2 2 4 2 | 2 4 6 5 | 4 3 2/2',
+  },
+  {
+    id: 'preset-saints', title: '圣者前进', subtitle: '进行节奏练习', category: '世界旋律', meter: '4/4', bpm: 116, color: '#f6cb57',
+    scoreSource: '1 3 5 5 | 3 5 6 6 | 5 3 5 3 | 1/2 0/2 | 1 3 5 5 | 3 5 6 6 | 5 3 2 1 | 1/4',
+  },
+  {
+    id: 'preset-three-notes', title: '三音小曲', subtitle: 'Do Re Mi 入门', category: '练习旋律', meter: '4/4', bpm: 92, color: '#78d889',
+    scoreSource: '1 2 3 2 | 1 2 3/2 | 3 2 1 2 | 1/4',
+  },
+  {
+    id: 'preset-five-notes', title: '五音上行', subtitle: '五音位置练习', category: '练习旋律', meter: '4/4', bpm: 96, color: '#5de0d3',
+    scoreSource: '1 2 3 4 | 5/2 4 3 | 2 1 2 3 | 1/4',
+  },
+  {
+    id: 'preset-octave-jump', title: '高音跳跃', subtitle: '八度定位练习', category: '练习旋律', meter: '4/4', bpm: 90, color: '#7299f7',
+    scoreSource: '1 3 5 1+ | 5 3 1/2 | 2 4 6 2+ | 6 4 2/2 | 1 5 1+ 5 | 1/4',
+  },
+  {
+    id: 'preset-half-beat', title: '半拍律动', subtitle: '八分节奏练习', category: '练习旋律', meter: '4/4', bpm: 108, color: '#ed74a9',
+    scoreSource: '1/.5 2/.5 3/.5 4/.5 5 3 | 2/.5 3/.5 4/.5 5/.5 4 2 | 1/.5 2/.5 3/.5 4/.5 5 4 | 3 2 1/2',
+  },
+].map((song) => ({ ...song, score: parseUserScore(song.scoreSource) }));
+
 let SONGS = [...BUILT_IN_SONGS, ...loadCustomSongs()];
 
 let audioContext;
@@ -243,6 +327,7 @@ let songVisualIndex = -1;
 let songRunId = 0;
 let practiceMode = false;
 let practiceIndex = 0;
+let selectedPresetCategory = '全部';
 
 const waveformSelect = document.querySelector('#waveform');
 const octaveSelect = document.querySelector('#octave');
@@ -279,6 +364,8 @@ const editorBpmInput = document.querySelector('#editorBpm');
 const editorScoreInput = document.querySelector('#editorScore');
 const editorError = document.querySelector('#editorError');
 const editorCancelButton = document.querySelector('#editorCancelButton');
+const presetLibrary = document.querySelector('#presetLibrary');
+const presetCategories = document.querySelector('#presetCategories');
 const practiceScreen = document.querySelector('#practiceScreen');
 const practiceExitButton = document.querySelector('#practiceExitButton');
 const practiceScreenMeta = document.querySelector('#practiceScreenMeta');
@@ -578,6 +665,7 @@ function selectSong(index) {
 
 function openSongEditor() {
   editorError.textContent = '';
+  renderPresetLibrary();
   songEditor.hidden = false;
   document.body.classList.add('editor-open');
   window.setTimeout(() => editorTitleInput.focus(), 0);
@@ -586,6 +674,69 @@ function openSongEditor() {
 function closeSongEditor() {
   songEditor.hidden = true;
   document.body.classList.remove('editor-open');
+}
+
+function renderPresetLibrary() {
+  presetLibrary.innerHTML = '';
+  presetCategories.innerHTML = '';
+  const categories = ['全部', ...new Set(PRESET_SONGS.map((song) => song.category))];
+  categories.forEach((category) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `preset-category${category === selectedPresetCategory ? ' active' : ''}`;
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-selected', String(category === selectedPresetCategory));
+    button.textContent = category === '全部' ? `全部 ${PRESET_SONGS.length}` : category;
+    button.addEventListener('click', () => {
+      selectedPresetCategory = category;
+      renderPresetLibrary();
+    });
+    presetCategories.append(button);
+  });
+
+  PRESET_SONGS.filter((song) => selectedPresetCategory === '全部' || song.category === selectedPresetCategory).forEach((song) => {
+    const added = SONGS.some((item) => item.libraryId === song.id);
+    const button = document.createElement('button');
+    button.className = 'preset-song-card';
+    button.type = 'button';
+    button.disabled = added;
+    button.style.setProperty('--preset-color', song.color);
+
+    const meta = document.createElement('span');
+    meta.textContent = added ? '已加入' : `${song.meter} · ${song.bpm} BPM`;
+    const title = document.createElement('strong');
+    title.textContent = song.title;
+    const subtitle = document.createElement('small');
+    subtitle.textContent = song.subtitle;
+    button.append(meta, title, subtitle);
+    button.addEventListener('click', () => addPresetSong(song.id));
+    presetLibrary.append(button);
+  });
+}
+
+function addPresetSong(presetId) {
+  const preset = PRESET_SONGS.find((song) => song.id === presetId);
+  if (!preset) return;
+  const existingIndex = SONGS.findIndex((song) => song.libraryId === presetId);
+  if (existingIndex >= 0) {
+    closeSongEditor();
+    selectSong(existingIndex);
+    showToast(`《${preset.title}》已经在曲目库中`);
+    return;
+  }
+  const song = {
+    ...preset,
+    id: `custom-${preset.id}`,
+    subtitle: `精选曲库 · ${preset.subtitle}`,
+    score: [...preset.score],
+    libraryId: preset.id,
+    custom: true,
+  };
+  SONGS.push(song);
+  saveCustomSongs();
+  closeSongEditor();
+  selectSong(SONGS.length - 1);
+  showToast(`《${song.title}》已加入曲目库`);
 }
 
 function addCustomSong(event) {

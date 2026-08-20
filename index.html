@@ -249,6 +249,19 @@
           <button class="editor-close" id="editorCancelButton" type="button" aria-label="取消添加曲目">×</button>
         </div>
 
+        <section class="preset-library-section" aria-labelledby="presetLibraryTitle">
+          <div class="preset-library-copy">
+            <div>
+              <p>一键加入</p>
+              <h3 id="presetLibraryTitle">精选曲库</h3>
+            </div>
+            <span>点一首就加入</span>
+          </div>
+          <div class="preset-categories" id="presetCategories" role="tablist" aria-label="曲库分类"></div>
+          <div class="preset-library" id="presetLibrary" role="list" aria-label="可添加的精选曲目"></div>
+        </section>
+
+        <div class="editor-divider"><span>或者，手动填写简谱</span></div>
         <label class="editor-field" for="editorTitle">
           <span>曲名</span>
           <input id="editorTitle" type="text" maxlength="30" placeholder="例如：我的第一首歌" required />

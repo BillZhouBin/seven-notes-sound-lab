@@ -399,6 +399,25 @@ kbd { padding: 2px 5px; border: 1px solid var(--line); color: var(--ink); backgr
 .song-editor-head p { margin: 0 0 7px; color: var(--acid); font-size: 9px; letter-spacing: .16em; }
 .song-editor-head h2 { margin: 0; font-size: clamp(26px, 5vw, 38px); }
 .editor-close { width: 42px; height: 42px; flex: 0 0 auto; color: var(--muted); border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 27px; line-height: 1; }
+.preset-library-section { padding: 16px; border: 1px solid rgba(223,255,84,.22); background: rgba(223,255,84,.04); }
+.preset-library-copy { display: flex; align-items: end; justify-content: space-between; gap: 16px; }
+.preset-library-copy p { margin: 0 0 5px; color: var(--acid); font-size: 8px; letter-spacing: .15em; }
+.preset-library-copy h3 { margin: 0; font-family: "Songti SC", "STSong", serif; font-size: 21px; }
+.preset-library-copy > span { color: var(--muted); font-size: 9px; }
+.preset-categories { display: flex; gap: 6px; margin-top: 13px; overflow-x: auto; padding-bottom: 2px; }
+.preset-category { min-height: 30px; flex: 0 0 auto; padding: 0 10px; color: var(--muted); border: 1px solid var(--line); background: transparent; cursor: pointer; font-size: 9px; white-space: nowrap; }
+.preset-category.active { color: #11120f; border-color: var(--acid); background: var(--acid); }
+.preset-library { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; margin-top: 13px; }
+.preset-song-card { --preset-color: var(--acid); position: relative; min-height: 86px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; padding: 10px; color: var(--ink); border: 1px solid var(--line); background: #11120f; overflow: hidden; cursor: pointer; text-align: left; }
+.preset-song-card::after { content: ""; position: absolute; width: 70px; height: 70px; right: -35px; bottom: -43px; border-radius: 50%; background: var(--preset-color); opacity: .16; }
+.preset-song-card:hover { border-color: var(--preset-color); }
+.preset-song-card:disabled { color: var(--muted); cursor: default; opacity: .58; }
+.preset-song-card > * { position: relative; z-index: 1; }
+.preset-song-card span { color: var(--preset-color); font-size: 8px; letter-spacing: .05em; }
+.preset-song-card strong { font-family: "Songti SC", "STSong", serif; font-size: 16px; }
+.preset-song-card small { color: var(--muted); font-size: 8px; }
+.editor-divider { display: flex; align-items: center; gap: 11px; margin: 21px 0 2px; color: var(--muted); font-size: 9px; }
+.editor-divider::before, .editor-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
 .editor-field { display: grid; gap: 8px; margin-top: 15px; color: var(--muted); font-size: 10px; letter-spacing: .1em; }
 .editor-field input, .editor-field textarea, .editor-field select { width: 100%; color: var(--ink); border: 1px solid var(--line); border-radius: 0; background: #0f100d; font-size: 14px; letter-spacing: 0; }
 .editor-field input, .editor-field textarea { padding: 12px; }
@@ -503,6 +522,8 @@ footer > p:first-child { margin: 0; font-family: "Kaiti SC", "STKaiti", "KaiTi",
   .song-editor { align-items: end; padding: 0; }
   .song-editor-sheet { width: 100%; max-height: min(88svh, 720px); padding: 23px 18px max(23px, env(safe-area-inset-bottom)); border-width: 1px 0 0; }
   .editor-row { gap: 8px; }
+  .preset-library { display: flex; overflow-x: auto; margin-right: -16px; padding-right: 16px; scroll-snap-type: x mandatory; }
+  .preset-song-card { width: 132px; min-width: 132px; scroll-snap-align: start; }
 }
 
 @media (prefers-reduced-motion: reduce) {
